@@ -13,7 +13,8 @@ O projeto utiliza a ontologia pública do CIATec [`ciatec_basquete.ttl`](https:/
 - [Requisitos e Instalação](#-requisitos-e-instalação)
 - [Como Executar a Aplicação Streamlit](#-como-executar-a-aplicação-streamlit)
 - [Mecanismo de Mitigação de Alucinações](#-mecanismo-de-mitigação-de-alucinações)
-- [Sistema de Predição](#-sistema-de-predição)
+- [Sistema de Predição e Link Prediction](#-sistema-de-predição-e-link-prediction)
+- [Justificativa Explicável na Interface do Usuário](#-justificativa-explicável-na-interface-do-usuário)
 - [Conformidade com os Princípios FAIR](#-conformidade-com-os-princípios-fair)
 - [Compilação do Paper Científico (Overleaf/LaTeX)](#-compilação-do-paper-científico-overleaflatex)
 
@@ -40,7 +41,7 @@ LLMs puramente estocásticas sofrem com alucinações conceituais e inconsistên
 
 ## 🔬 Hipótese Científica ($H_1$)
 
-- **Hipótese ($H_1$):** *A ancoragem explícita de uma LLM local leve em um Grafo de Conhecimento RDF/OWL via consultas SPARQL determinísticas elimina alucinações conceituais específicas do domínio ($HR  pprox 0\%$) e aumenta significativamente a acurácia de predição ($P_{win} \ge 85\%$) dos resultados de partidas de basquete adaptativo em comparação a LLMs não ancoradas.*
+- **Hipótese ($H_1$):** *A ancoragem explícita de uma LLM local leve em um Grafo de Conhecimento RDF/OWL via consultas SPARQL determinísticas elimina alucinações conceituais específicas do domínio ($HR  pprox 0\%$) e aumenta significativamente a acurácia de predição ($P_{win} \ge 85\%$) e a precisão do Link Prediction ontológico ($AUC \ge 0.90$) dos resultados de partidas de basquete adaptativo em comparação a LLMs não ancoradas.*
 
 ### Métricas de Avaliação
 1. **Taxa de Alucinação ($HR$):**
@@ -121,7 +122,28 @@ A redução de alucinações de **42,3% para 1,2%** ocorre devido a três pilare
 
 ---
 
-## 📊 Sistema de Predição
+## 📊 Sistema de Predição e Link Prediction
+
+A inferência e a análise preditiva combinam modelos baseados em regras ontológicas, aprendizado estatístico e **Link Prediction (Predição de Enlaces)** no Grafo de Conhecimento:
+
+1. **Link Prediction no Grafo de Conhecimento:**
+   - **Objetivo:** Predizer relações não observadas ou futuras no grafo, como a probabilidade de um participante executar com sucesso um tipo específico de arremesso (`:hasSuccessfulAttempt`) ou desenvolver uma determinada transição motora baseado no seu perfil clínico (GMFCS/MACS).
+   - **Métrica:** Avaliado via área sob a curva ROC ($AUC \ge 0.90$) e $Precision@K$ no Grafo de Conhecimento.
+
+2. **Probabilidade Matemática de Vitória ($P(Won)$):**
+   $$P(Won = 1) = \sigma \left(  eta_0 +  eta_1 HR_{match} +  eta_2 \overline{\Delta t} +  eta_3 S_{pos} +  eta_4 LP_{score} 
+ight)$$
+   Onde $HR_{match}$ é a taxa de acerto da partida, $\overline{\Delta t}$ é o tempo médio entre arremessos, $S_{pos}$ é a consistência de manutenção de posição e $LP_{score}$ é o score derivado do modelo de Link Prediction.
+
+---
+
+## 🖥️ Justificativa Explicável na Interface do Usuário
+
+A interface Streamlit integra uma **seção dedicada de Justificativa Explicável** para apoiar a tomada de decisão clínica e esportiva:
+
+- **Apresentação Visual Transparente:** Exibe para o usuário final não apenas a classe prevista (vitória/desempenho alto), mas a **justificativa semântica detalhada** gerada pela LLM fundamentada no contexto ontológico.
+- **Rastreabilidade de Evidências:** A interface exibe as triplas RDF recuperadas via SPARQL e as previsões de novas conexões (*Link Prediction*) que embasaram o raciocínio da IA, eliminando o comportamento de "caixa-preta".
+- **Comparativo de Confiabilidade:** Apresenta lado a lado a resposta ancorada na ontologia versus o texto sem ancoragem, com indicadores visuais de integridade dos dados e ausência de alucinações.
 
 A predição de vitória ou resultado motor é realizada por uma função de decisão combinada:
 
