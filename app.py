@@ -7,13 +7,13 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Configuração da página Streamlit
-st.set_page_config(page_title="CIATec - Basquete & IA Neuro-Simbólica", layout="wide")
+# Streamlit Page Configuration
+st.set_page_config(page_title="CIATec - Basketball & Neuro-Symbolic AI", layout="wide")
 
 st.title("🏀 CIATec: Neuro-Symbolic Basketball Performance Prediction")
-st.markdown("Plataforma de IA Neuro-Simbólica para predição de desempenho, Link Prediction em Grafos de Conhecimento, Inferência Local e mitigação de alucinações.")
+st.markdown("Neuro-Symbolic AI platform for performance prediction, Link Prediction in Knowledge Graphs, Local Inference, and hallucination mitigation.")
 
-# Carga de Dados e Ontologia
+# Load Data and Ontology
 @st.cache_resource
 def load_resources():
     g = rdflib.Graph()
@@ -38,20 +38,20 @@ def predict_graph_links(user_id, match_id):
     ]
     return lp_score, predicted_links
 
-st.sidebar.header("⚙️ Configurações da Partida")
-match_id = st.sidebar.number_input("ID da Partida", min_value=1, max_value=790, value=10)
-user_id = st.sidebar.number_input("ID do Jogador", min_value=1, max_value=50, value=5)
-temperature = st.sidebar.slider("Temperatura da LLM", 0.0, 1.0, 0.0, step=0.1)
+st.sidebar.header("⚙️ Match Settings")
+match_id = st.sidebar.number_input("Match ID", min_value=1, max_value=790, value=10)
+user_id = st.sidebar.number_input("Player ID", min_value=1, max_value=50, value=5)
+temperature = st.sidebar.slider("LLM Temperature", 0.0, 1.0, 0.0, step=0.1)
 
-btn_inference = st.sidebar.button("🚀 Executar Inferência da LLM Local", type="primary")
+btn_inference = st.sidebar.button("🚀 Run Local LLM Inference", type="primary")
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "📊 Predição & Link Prediction", 
-    "🖥️ Justificativa Explicável na UI", 
-    "🔍 Consultas SPARQL & Executor Interativo",
-    "🧪 A/B Grounding & Alucinações",
-    "📈 Análise Detalhada & Métricas de Desempenho",
-    "🔬 Link Prediction vs. Inferência (Estudo Científico)"
+    "📊 Prediction & Link Prediction", 
+    "🖥️ Explainable Justification in UI", 
+    "🔍 SPARQL Queries & Interactive Executor",
+    "🧪 A/B Grounding & Hallucinations",
+    "📈 Detailed Analysis & Performance Metrics",
+    "🔬 Link Prediction vs. Inference (Scientific Study)"
 ])
 
 lp_score, predicted_links = predict_graph_links(user_id, match_id)
@@ -61,55 +61,55 @@ s_pos = 0.82
 p_won = 1 / (1 + np.exp(-(-1.5 + 2.0*hr_match - 0.3*delta_t + 1.2*s_pos + 1.8*lp_score)))
 
 if btn_inference:
-    st.sidebar.success("Inferência executada com sucesso via Qwen2.5-0.5B-Instruct local!")
+    st.sidebar.success("Inference executed successfully via local Qwen2.5-0.5B-Instruct!")
 
 with tab1:
-    st.header("Sistema de Predição de Desempenho & Link Prediction")
+    st.header("Performance Prediction & Link Prediction System")
     col1, col2 = st.columns(2)
     with col1:
-        st.metric(label="Probabilidade de Vitória P(Won)", value=f"{p_won*100:.1f}%")
+        st.metric(label="Win Probability P(Won)", value=f"{p_won*100:.1f}%")
         st.metric(label="Link Prediction AUC / Score", value=f"{lp_score:.3f}")
     
     with col2:
-        st.subheader("🔗 Enlaces Preditos no Grafo de Conhecimento")
+        st.subheader("🔗 Predicted Links in the Knowledge Graph")
         for link in predicted_links:
             st.code(link, language="ttl")
 
 with tab2:
-    st.header("🖥️ Justificativa Explicável na Interface do Usuário")
-    st.markdown("Transparência completa: Rastreabilidade das evidências do Grafo RDF e razões semânticas da decisão da IA.")
+    st.header("🖥️ Explainable Justification in the User Interface")
+    st.markdown("Complete transparency: Traceability of RDF Graph evidence and semantic rationale for AI decisions.")
     
     col_a, col_b = st.columns(2)
     with col_a:
-        st.subheader("📌 Triplas RDF Extraídas & Predições de Links")
-        st.info(f"**Usuário:** :User_{user_id} | **Partida:** :Match_{match_id}")
-        st.text_area("Evidências Ontológicas (SPARQL Context)", 
+        st.subheader("📌 Extracted RDF Triples & Link Predictions")
+        st.info(f"**User:** :User_{user_id} | **Match:** :Match_{match_id}")
+        st.text_area("Ontological Evidence (SPARQL Context)", 
                      f":User_{user_id} :hasGMFCSLevel :Level1 .\n"
                      f":Match_{match_id} :hasAccuracy {hr_match*100}% .\n"
                      f":Match_{match_id} :avgReactionTime {delta_t}s .\n"
-                     f"PREDITO: :User_{user_id} :hasSuccessfulAttemptProbable :ShotType_ThreePointer (Score: {lp_score:.2f})", 
+                     f"PREDICTED: :User_{user_id} :hasSuccessfulAttemptProbable :ShotType_ThreePointer (Score: {lp_score:.2f})", 
                      height=180)
     
     with col_b:
-        st.subheader("💡 Parecer Semântico Fundamentado (Saída LLM)")
+        st.subheader("💡 Grounded Semantic Assessment (LLM Output)")
         if btn_inference:
             justification = (
-                f"[INFERÊNCIA LOCAL EXECUTADA (T={temperature})]\n"
-                f"Com base na análise ontológica determinística e no modelo de Link Prediction (Score: {lp_score:.2f}), "
-                f"o jogador possui perfil motor compatível com alta acurácia ({hr_match*100}%). "
-                f"O tempo médio de reação de {delta_t}s e a estabilidade posicional garantem uma probabilidade de vitória calculada em {p_won*100:.1f}%. "
-                f"Não foram identificadas inconsistências nos dados do participante."
+                f"[LOCAL INFERENCE EXECUTED (T={temperature})]\n"
+                f"Based on deterministic ontological analysis and the Link Prediction model (Score: {lp_score:.2f}), "
+                f"the player presents a motor profile compatible with high accuracy ({hr_match*100}%). "
+                f"The average reaction time of {delta_t}s and positional stability guarantee a calculated win probability of {p_won*100:.1f}%. "
+                f"No inconsistencies were identified in the participant's data."
             )
             st.success(justification)
         else:
-            st.warning("Clique no botão '🚀 Executar Inferência da LLM Local' na barra lateral para rodar a geração explicativa em tempo real.")
+            st.warning("Click the '🚀 Run Local LLM Inference' button in the sidebar to execute real-time explainable generation.")
 
 with tab3:
-    st.header("🔍 Consultas SPARQL do Sistema & Executor Interativo")
-    st.markdown("Abaixo estão as **consultas SPARQL padrão** utilizadas pelo pipeline neuro-simbólico para extração de evidências, juntamente com a **justificação técnica** para cada uma. Você pode testá-las e modificá-las no console interativo.")
+    st.header("🔍 System SPARQL Queries & Interactive Executor")
+    st.markdown("Below are the **standard SPARQL queries** used by the neuro-symbolic pipeline for evidence extraction, alongside the **technical justification** for each. You can test and modify them in the interactive console.")
     
-    # Exibição e Justificativa das Consultas Padrão
-    with st.expander("📖 Consulta 1: Extração do Perfil Clínico e Motor do Jogador (Clique para expandir)"):
+    # Standard Queries Display & Justification
+    with st.expander("📖 Query 1: Player Clinical and Motor Profile Extraction (Click to view justification)"):
         q1_code = f"""PREFIX ciatec: <http://www.ciatec.org/ontologies/basketball#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
@@ -121,9 +121,9 @@ WHERE {{
   OPTIONAL {{ ?user ciatec:usesWheelchair ?wheelchairType . }}
 }}"""
         st.code(q1_code, language="sparql")
-        st.markdown("**Justificativa:** Esta consulta recupera a caracterização motora (classificação GMFCS e MACS) e assistiva do participante selecionado (`User_X`). Essa informação é fundamental para que o pipeline neuro-simbólico ajuste as ponderações de desempenho de acordo com o nível funcional motor do atleta.")
+        st.markdown("**Justification:** This query retrieves the motor characterization (GMFCS and MACS classification) and assistive equipment data for the selected participant (`User_X`). This information is crucial for the neuro-symbolic pipeline to adjust performance weights according to the athlete's functional motor level.")
 
-    with st.expander("📖 Consulta 2: Agregação Biomecânica da Partida (Clique para expandir)"):
+    with st.expander("📖 Query 2: Match Biomechanical Aggregation (Click to view justification)"):
         q2_code = f"""PREFIX ciatec: <http://www.ciatec.org/ontologies/basketball#>
 
 SELECT ?match ?accuracy ?avgReactionTime ?positionalStability
@@ -134,10 +134,10 @@ WHERE {{
   OPTIONAL {{ ?match ciatec:positionalStability ?positionalStability . }}
 }}"""
         st.code(q2_code, language="sparql")
-        st.markdown("**Justificativa:** Esta consulta extrai os indicadores determinísticos observados na partida (taxa de acerto, tempo de reação em segundos e estabilidade posicional). Esses dados servem como o *grounding* determinístico essencial para alimentar a fórmula da regressão logística e compor o contexto semântico (*prompt*) enviado à LLM local.")
+        st.markdown("**Justification:** This query extracts the deterministic indicators observed during the match (shooting accuracy rate, average reaction time in seconds, and positional stability). This data serves as the essential deterministic *grounding* to feed the logistic regression formula and construct the semantic prompt sent to the local LLM.")
 
     st.markdown("---")
-    st.subheader("⚡ Console de Execução SPARQL (Editável)")
+    st.subheader("⚡ SPARQL Execution Console (Editable)")
     
     default_sparql = f"""PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
@@ -149,8 +149,8 @@ WHERE {{
 }}
 LIMIT 25"""
 
-    sparql_query_input = st.text_area("✏️ Edite ou digite sua consulta SPARQL aqui:", value=default_sparql, height=200)
-    btn_run_sparql = st.button("⚡ Executar Consulta no Grafo RDF")
+    sparql_query_input = st.text_area("✏️ Edit or type your SPARQL query here:", value=default_sparql, height=200)
+    btn_run_sparql = st.button("⚡ Execute Query on RDF Graph")
     
     if btn_run_sparql:
         try:
@@ -161,76 +161,76 @@ LIMIT 25"""
             
             if data_res:
                 df_sparql = pd.DataFrame(data_res, columns=[str(var) for var in results.vars])
-                st.success(f"Consulta executada com sucesso! Retornados {len(df_sparql)} resultados.")
+                st.success(f"Query executed successfully! Returned {len(df_sparql)} results.")
                 st.dataframe(df_sparql, use_container_width=True)
             else:
-                st.info("A consulta SPARQL foi executada com sucesso, mas não retornou triplas correspondentes ao padrão solicitado no grafo atual.")
+                st.info("The SPARQL query executed successfully, but returned no matching triples in the current graph.")
         except Exception as err:
-            st.error(f"Erro na execução da consulta SPARQL: {err}")
+            st.error(f"Error executing SPARQL query: {err}")
 
 with tab4:
-    st.header("🧪 Comparativo A/B de Alucinação")
-    st.markdown("Comparativo entre a resposta ancorada na ontologia (T=0.0) e o modo estocástico livre (T=0.9).")
+    st.header("🧪 Hallucination A/B Testing")
+    st.markdown("Comparison between ontology-grounded generation (T=0.0) and unconstrained stochastic mode (T=0.9).")
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("✅ Modo Ancorado (RAG Ontológico - T=0.0)")
-        st.write("• Taxa de Alucinação: **1.2%**")
-        st.write("• Resposta estritamente limitada às triplas verificadas no grafo de conhecimento.")
+        st.subheader("✅ Grounded Mode (Ontological RAG - T=0.0)")
+        st.write("• Hallucination Rate: **1.2%**")
+        st.write("• Response strictly restricted to verified triples in the knowledge graph.")
     with col2:
-        st.subheader("⚠️ Modo Livre (Sem Ancoragem - T=0.9)")
-        st.write("• Taxa de Alucinação: **42.3%**")
-        st.write("• Alto risco de invenção de estatísticas de partida e diagnósticos inexistentes.")
+        st.subheader("⚠️ Unbounded Mode (Unconstrained - T=0.9)")
+        st.write("• Hallucination Rate: **42.3%**")
+        st.write("• High risk of fabricating match statistics and non-existent diagnoses.")
 
 with tab5:
-    st.header("📈 Análise Detalhada & Métricas de Desempenho")
+    st.header("📈 Detailed Analysis & Performance Metrics")
     col_chart1, col_chart2 = st.columns(2)
     with col_chart1:
-        st.subheader("Distribuição de Probabilidade P(Won) vs. Score LP")
+        st.subheader("P(Won) Probability Distribution vs. LP Score")
         fig, ax = plt.subplots(figsize=(6, 4))
         lp_range = np.linspace(0.5, 1.0, 50)
         p_won_range = 1 / (1 + np.exp(-(-1.5 + 2.0*hr_match - 0.3*delta_t + 1.2*s_pos + 1.8*lp_range)))
-        ax.plot(lp_range, p_won_range * 100, color='#1abc9c', lw=2.5, label='Curva P(Won)')
-        ax.axvline(x=lp_score, color='#e74c3c', linestyle='--', label=f'LP Score Atual ({lp_score:.2f})')
-        ax.set_xlabel('Score de Link Prediction')
-        ax.set_ylabel('Probabilidade de Vitória (%)')
-        ax.set_title('Impacto do Link Prediction na Probabilidade')
+        ax.plot(lp_range, p_won_range * 100, color='#1abc9c', lw=2.5, label='P(Won) Curve')
+        ax.axvline(x=lp_score, color='#e74c3c', linestyle='--', label=f'Current LP Score ({lp_score:.2f})')
+        ax.set_xlabel('Link Prediction Score')
+        ax.set_ylabel('Win Probability (%)')
+        ax.set_title('Impact of Link Prediction on Probability')
         ax.legend()
         ax.grid(True, alpha=0.3)
         st.pyplot(fig)
         
     with col_chart2:
-        st.subheader("Resumo das Variáveis do Participante")
+        st.subheader("Participant Variables Summary")
         data_summary = pd.DataFrame({
-            "Métrica": ["ID do Jogador", "ID da Partida", "Acurácia de Arremesso", "Tempo Médio Reação", "Estabilidade Posicional", "Score LP", "Probabilidade P(Won)"],
-            "Valor": [f":User_{user_id}", f":Match_{match_id}", f"{hr_match*100}%", f"{delta_t}s", f"{s_pos*100}%", f"{lp_score:.3f}", f"{p_won*100:.1f}%"],
-            "Origem / Fonte": ["Ontologia TTL", "Dataset Excel", "SPARQL Query", "SPARQL Query", "Ontologia TTL", "Modelo LP (Grafo)", "Inferência Neuro-Simbólica"]
+            "Metric": ["Player ID", "Match ID", "Shooting Accuracy", "Avg Reaction Time", "Positional Stability", "LP Score", "Win Probability P(Won)"],
+            "Value": [f":User_{user_id}", f":Match_{match_id}", f"{hr_match*100}%", f"{delta_t}s", f"{s_pos*100}%", f"{lp_score:.3f}", f"{p_won*100:.1f}%"],
+            "Source / Origin": ["TTL Ontology", "Excel Dataset", "SPARQL Query", "SPARQL Query", "TTL Ontology", "LP Model (Graph)", "Neuro-Symbolic Inference"]
         })
         st.dataframe(data_summary, use_container_width=True)
 
 with tab6:
-    st.header("🔬 Link Prediction vs. Inferência Tradicional (Estudo Científico)")
+    st.header("🔬 Link Prediction vs. Traditional Inference (Scientific Study)")
     st.markdown("""
-    ### 📘 Justificativa Científica para o Uso de Link Prediction
-    Em Grafos de Conhecimento Ontológicos (RDF/OWL), a **Inferência Tradicional** (Raciocinadores Description Logics como HermiT/Pellet) atua sob a **Assunção de Mundo Aberto (OWA)** e deduções lógicas estritas ($A \\models B$). Se uma relação entre um jogador e uma habilidade motora não estiver formalmente declarada, a inferência dedutiva falha em identificá-la.
+    ### 📘 Scientific Justification for Using Link Prediction
+    In Ontological Knowledge Graphs (RDF/OWL), **Traditional Inference** (Description Logics reasoners like HermiT/Pellet) operates under the **Open World Assumption (OWA)** and strict logical deductions ($A \models B$). If a relationship between a player and a motor skill is not formally declared, deductive inference fails to identify it.
     
-    Por outro lado, o **Link Prediction (Predição de Enlaces)** utiliza representações vetoriais (*Graph Embeddings* / GNNs) para calcular a probabilidade e a proximidade estrutural entre nós semânticos ($P(e_{ij} \\in E)$). Isso permite:
-    1. **Superar a Escassez de Dados (Data Sparsity):** Identifica habilidades potenciais antes do registro explícito na partida.
-    2. **Mitigar a Rigidez Dedutiva:** Permite predições probabilísticas contínuas e não-binárias em diagnósticos clínicos e biomecânicos.
-    3. **Enriquecimento Dinâmico do Grafo:** Adiciona triplas probabilísticas que servem como contexto grounded enriquecido para a inferência da LLM.
+    Conversely, **Link Prediction** uses vector representations (*Graph Embeddings* / GNNs) to calculate probability and structural proximity between semantic nodes ($P(e_{ij} \in E)$). This allows:
+    1. **Overcoming Data Sparsity:** Identifies potential skills before explicit registration in matches.
+    2. **Mitigating Deductive Rigidity:** Enables continuous, non-binary probabilistic predictions in clinical and biomechanical diagnostics.
+    3. **Dynamic Graph Enrichment:** Adds probabilistic triples that serve as enriched grounded context for LLM inference.
     """)
     
     col_cmp1, col_cmp2 = st.columns(2)
     with col_cmp1:
-        st.subheader("📊 Comparação de Desempenho e Acurácia (ROC-AUC)")
+        st.subheader("📊 Performance & Accuracy Comparison (ROC-AUC)")
         fig2, ax2 = plt.subplots(figsize=(6, 4))
-        categories = ['Inferência Dedutiva Lógica', 'Inferência LLM Pura (Sem Grafo)', 'Link Prediction + RAG Ontológico']
+        categories = ['Logical Deductive Inference', 'Pure LLM Inference (No Graph)', 'Link Prediction + Ontological RAG']
         auc_scores = [0.68, 0.74, 0.93]
         colors = ['#7f8c8d', '#e74c3c', '#2ecc71']
         
         bars = ax2.bar(categories, auc_scores, color=colors, alpha=0.85)
         ax2.set_ylabel('ROC-AUC Score')
         ax2.set_ylim(0, 1.0)
-        ax2.set_title('Capacidade Preditiva das Abordagens')
+        ax2.set_title('Predictive Capacity Across Approaches')
         plt.xticks(rotation=15, ha='right')
         for bar in bars:
             yval = bar.get_height()
@@ -239,28 +239,28 @@ with tab6:
         st.pyplot(fig2)
         
     with col_cmp2:
-        st.subheader("⚖️ Matriz Comparativa Acadêmica")
+        st.subheader("⚖️ Academic Comparative Matrix")
         comp_df = pd.DataFrame({
-            "Caraterística": ["Paradigma Raciocínio", "Tratamento de Dados Ausentes", "Acurácia Preditiva (AUC)", "Resistência a Alucinações", "Complexidade Computacional"],
-            "Inferência Lógica (OWL/DL)": ["Simbólico / Dedutivo", "Baixa (Assume OWA)", "68%", "100% (Determinístico)", "Alta (NP-Completo)"],
-            "Inferência LLM Pura": ["Sub-simbólico Estocástico", "Média (Gera Alucinações)", "74%", "Baixa (42.3% Alucinações)", "Média"],
-            "Link Prediction + RAG (Proposto)": ["Neuro-Simbólico Integrado", "Alta (Predição Probabilística)", "93%", "Altíssima (1.2% Alucinações)", "Eficiente O(E+V)"]
+            "Characteristic": ["Reasoning Paradigm", "Handling Missing Data", "Predictive Accuracy (AUC)", "Hallucination Resistance", "Computational Complexity"],
+            "Logical Inference (OWL/DL)": ["Symbolic / Deductive", "Low (Assumes OWA)", "68%", "100% (Deterministic)", "High (NP-Complete)"],
+            "Pure LLM Inference": ["Stochastic Sub-symbolic", "Medium (Causes Hallucinations)", "74%", "Low (42.3% Hallucinations)", "Medium"],
+            "Link Prediction + RAG (Proposed)": ["Integrated Neuro-Symbolic", "High (Probabilistic Prediction)", "93%", "Very High (1.2% Hallucinations)", "Efficient O(E+V)"]
         })
         st.dataframe(comp_df, use_container_width=True)
 
     st.markdown("---")
-    st.subheader("📖 Explicação Científica dos Componentes, Fontes de Dados e Métricas")
+    st.subheader("📖 Scientific Explanation of Components, Data Sources, and Metrics")
     st.markdown("""
-    A tabela e os gráficos apresentados nesta guia integram múltiplos componentes da arquitetura neuro-simbólica do CIATec:
+    The table and charts presented in this tab integrate multiple components of CIATec's neuro-symbolic architecture:
 
-    * **Consultas SPARQL:** Mecanismo determinístico de recuperação de dados no grafo RDF. Extrai em tempo de execução métricas agregadas da partida (ex.: acurácia de arremessos `hasAccuracy` e tempo médio de reação `avgReactionTime`). Permite execução e modificação interativa de *queries* na guia dedicada.
-    * **Modelo LP (Grafo) / Link Prediction:** Algoritmo probabilístico baseado em representação vetorial do grafo. Prediz a probabilidade de um participante realizar com sucesso novos tipos de arremesso ou apresentar evolução motora.
-    * **Inferência Neuro-Simbólica:** Fusão do raciocínio determinístico do grafo RDF com o processamento de linguagem natural da LLM local (`Qwen2.5-0.5B-Instruct`), calculando a probabilidade final de vitória $P(Won)$ e gerando explicações em linguagem natural.
-    * **Ontologia TTL (`ciatec_basquete.ttl`):** Esquema formal baseado no padrão W3C OWL/RDF que define as classes conceituais, hierarquias clínicas (GMFCS/MACS) e restrições de domínio do basquete adaptativo.
-    * **Dataset Excel (`balls.xlsx`, `matches.xlsx`, `users.xlsx`):** Dados brutos primários contendo os registros biomecânicos e operacionais capturados durante as sessões de jogo sério.
+    * **SPARQL Queries:** Deterministic data retrieval mechanism from the RDF graph. Extracts runtime aggregated match metrics (e.g., shooting accuracy `hasAccuracy` and average reaction time `avgReactionTime`). Enables interactive query execution and modification in the dedicated tab.
+    * **LP Model (Graph) / Link Prediction:** Probabilistic algorithm based on graph vector representations. Predicts the likelihood of a participant successfully performing new shot types or displaying motor improvement.
+    * **Neuro-Symbolic Inference:** Fusion of deterministic RDF graph reasoning with natural language processing from the local LLM (`Qwen2.5-0.5B-Instruct`), computing the final win probability $P(Won)$ and generating natural language explanations.
+    * **TTL Ontology (`ciatec_basquete.ttl`):** Formal W3C OWL/RDF schema defining conceptual classes, clinical hierarchies (GMFCS/MACS), and domain constraints for adaptive basketball.
+    * **Excel Dataset (`balls.xlsx`, `matches.xlsx`, `users.xlsx`):** Primary raw data containing biomechanical and operational records captured during serious game sessions.
 
-    #### 💡 Interpretação do Gráfico de Capacidade Preditiva (ROC-AUC)
-    1. **Inferência Dedutiva Lógica (0.68):** Limitada pela rigidez do mundo aberto (OWA), falhando na presença de dados ausentes ou não explicitados.
-    2. **Inferência LLM Pura (0.74):** Sujeita a viés estocástico e alucinações táticas/numéricas devido à ausência de grounding ontológico.
-    3. **Link Prediction + RAG Ontológico (0.93):** Combina a precisão do grafo semântico com a capacidade de generalizar conexões prováveis, atingindo a maior acurácia e eliminando alucinações.
+    #### 💡 Interpretation of Predictive Capacity Chart (ROC-AUC)
+    1. **Logical Deductive Inference (0.68):** Limited by Open World Assumption (OWA) rigidity, failing when data is missing or unstated.
+    2. **Pure LLM Inference (0.74):** Subject to stochastic bias and tactical/numerical hallucinations due to lack of ontological grounding.
+    3. **Link Prediction + Ontological RAG (0.93):** Combines semantic graph precision with the ability to generalize likely links, achieving the highest accuracy while eliminating hallucinations.
     """)
