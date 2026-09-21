@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIATEC Basketball - RDF Concept Schema Visualizer (Publication Ready)</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Vis.js Network Library -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/styles/vis-network.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/standalone/umd/vis-network.min.js"></script>
+
+  <!-- N3.js RDF Turtle Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/n3@1.16.0/browser/n3.min.js"></script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a'
+            },
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    #mynetwork {
+      width: 100%;
+      height: 100%;
+      background-color: #ffffff;
+    }
+
+    /* Scrollbar customization */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .vis-network:focus {
+      outline: none;
+    }
+
+    /* Scientific paper diagram grid overlay */
+    .paper-grid {
+      background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col md:flex-row">
+
+  <!-- Left Control Sidebar -->
+  <aside class="w-full md:w-96 bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-sm shrink-0">
+    <!-- Header -->
+    <div class="p-5 border-b border-slate-100 bg-slate-50/70">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-lg shadow-xs">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 leading-tight">CIATEC Basquete</h1>
+          <p class="text-xs text-slate-500 font-semibold tracking-wide uppercase">TBox Schema Visualizer</p>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="bg-white p-3 rounded-md border border-slate-200 shadow-2xs">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">Concept Classes</span>
+          <span id="stat-nodes" class="text-lg font-black text-slate-900">0</span>
+        </div>
+        <div class="bg-white p-3 rounded-md border border-slate-200 shadow-2xs">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">Schema Edges</span>
+          <span id="stat-edges" class="text-lg font-black text-brand-700">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable Control Panel -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      
+      <!-- Ontology Source URL Card -->
+      <div class="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2">
+        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+          <i class="fa-solid fa-link text-brand-700 mr-1"></i> RDF TTL Source URL
+        </label>
+        <div class="flex gap-1.5">
+          <input type="url" id="ttl-url-input" value="https://raw.githubusercontent.com/ciatec-org/ciatec-data-samples/main/pc_basketball_2024_v2/ciatec_basquete.ttl" 
+                 placeholder="https://example.org/ontology.ttl"
+                 class="flex-1 min-w-0 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all font-mono text-[11px]">
+          <button id="btn-load-url" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-md shadow-xs transition-colors shrink-0 flex items-center gap-1">
+            <i class="fa-solid fa-rotate"></i> Load
+          </button>
+        </div>
+        <!-- Sample Presets Dropdown -->
+        <div class="flex items-center gap-2 pt-1">
+          <span class="text-[10px] text-slate-400 font-semibold uppercase shrink-0">Presets:</span>
+          <select id="preset-url-select" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-[11px] rounded px-2 py-1 focus:outline-none">
+            <option value="">-- Choose Sample Ontology --</option>
+            <option value="https://raw.githubusercontent.com/ciatec-org/ciatec-data-samples/main/pc_basketball_2024_v2/ciatec_basquete.ttl">CIATEC Basquete (Default)</option>
+            <option value="https://raw.githubusercontent.com/owlcs/pizza-ontology/master/pizza.ttl">Pizza Ontology (OWL/TTL)</option>
+            <option value="https://raw.githubusercontent.com/permid/foaf/master/foaf.ttl">FOAF Vocabulary</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Famous Ontologies & Vocabularies Enrichment Panel -->
+      <div class="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+            <i class="fa-solid fa-layer-group text-brand-700 mr-1"></i> Enrich with Vocabularies
+          </label>
+          <span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">W3C / Standards</span>
+        </div>
+        <p class="text-[11px] text-slate-500 leading-snug">
+          Merge standard upper-level ontologies or align existing concepts with standard namespaces.
+        </p>
+
+        <!-- Quick Vocabulary Inject Grid -->
+        <div class="grid grid-cols-2 gap-1.5 pt-1">
+          <button onclick="enrichWithVocabulary('schema')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-xs font-medium text-slate-700 text-left flex items-center justify-between group transition-colors">
+            <span><i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i> Schema.org</span>
+            <i class="fa-solid fa-plus text-[10px] text-slate-400 group-hover:text-slate-700"></i>
+          </button>
+          <button onclick="enrichWithVocabulary('foaf')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-xs font-medium text-slate-700 text-left flex items-center justify-between group transition-colors">
+            <span><i class="fa-solid fa-users text-blue-500 mr-1.5"></i> FOAF</span>
+            <i class="fa-solid fa-plus text-[10px] text-slate-400 group-hover:text-slate-700"></i>
+          </button>
+          <button onclick="enrichWithVocabulary('skos')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-xs font-medium text-slate-700 text-left flex items-center justify-between group transition-colors">
+            <span><i class="fa-solid fa-sitemap text-indigo-500 mr-1.5"></i> SKOS</span>
+            <i class="fa-solid fa-plus text-[10px] text-slate-400 group-hover:text-slate-700"></i>
+          </button>
+          <button onclick="enrichWithVocabulary('provo')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-xs font-medium text-slate-700 text-left flex items-center justify-between group transition-colors">
+            <span><i class="fa-solid fa-timeline text-emerald-500 mr-1.5"></i> PROV-O</span>
+            <i class="fa-solid fa-plus text-[10px] text-slate-400 group-hover:text-slate-700"></i>
+          </button>
+          <button onclick="enrichWithVocabulary('dcterms')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-xs font-medium text-slate-700 text-left flex items-center justify-between group transition-colors col-span-2">
+            <span><i class="fa-solid fa-book-bookmark text-rose-500 mr-1.5"></i> Dublin Core (DCTERMS)</span>
+            <i class="fa-solid fa-plus text-[10px] text-slate-400 group-hover:text-slate-700"></i>
+          </button>
+        </div>
+
+        <!-- Semantic Alignment Button -->
+        <button onclick="alignCIATECVocabularies()" class="w-full mt-2 py-2 px-3 bg-brand-50 hover:bg-brand-100 border border-brand-200 text-brand-800 font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-all">
+          <i class="fa-solid fa-wand-magic-sparkles text-brand-600"></i> Auto-Align CIATEC with Standard Vocabularies
+        </button>
+      </div>
+
+      <!-- Export for Papers Card -->
+      <div class="bg-slate-900 text-white rounded-xl p-4 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <i class="fa-solid fa-file-export text-brand-600"></i> Scientific Figure Export
+          </span>
+          <span class="text-[10px] bg-brand-600/30 text-brand-100 px-2 py-0.5 rounded-full font-mono">High-DPI</span>
+        </div>
+        <p class="text-[11px] text-slate-300 leading-relaxed">
+          Generates a high-contrast figure with zero text overlap, ready for inclusion in LaTeX or scientific publications.
+        </p>
+        <button id="btn-export-png" class="w-full py-2.5 px-3 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm">
+          <i class="fa-solid fa-camera"></i> Export High-Res PNG (Figure)
+        </button>
+      </div>
+
+      <!-- Search & Filter -->
+      <div>
+        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Search Concepts</label>
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input type="text" id="search-input" placeholder="Filter concept classes..." 
+                 class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all">
+        </div>
+      </div>
+
+      <!-- Inspector Panel -->
+      <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200">
+        <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+          <span>Concept Inspector</span>
+          <i class="fa-solid fa-microscope text-slate-400"></i>
+        </h2>
+        <div id="inspector-content">
+          <p class="text-xs text-slate-400 italic">Select any concept node on the canvas to inspect or adjust its URI label.</p>
+        </div>
+      </div>
+
+      <!-- Layout & Physics Options (Prevents Overlap) -->
+      <details class="group bg-white border border-slate-200 rounded-lg overflow-hidden [&_summary::-webkit-details-marker]:hidden" open>
+        <summary class="flex items-center justify-between p-3 text-xs font-bold text-slate-800 cursor-pointer hover:bg-slate-50 transition-colors">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-sliders text-brand-700"></i> Layout & Overlap Control</span>
+          <i class="fa-solid fa-chevron-down text-slate-400 transition-transform group-open:rotate-180"></i>
+        </summary>
+        <div class="p-3 border-t border-slate-100 bg-slate-50/50 space-y-3 text-xs">
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-600 font-medium">Node Spacing (Spring Length)</label>
+              <span id="val-spring" class="font-mono text-slate-700">160</span>
+            </div>
+            <input type="range" id="slider-spring" min="80" max="300" value="160" class="w-full accent-slate-900">
+          </div>
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-600 font-medium">Repulsion Force</label>
+              <span id="val-repulsion" class="font-mono text-slate-700">-80</span>
+            </div>
+            <input type="range" id="slider-repulsion" min="-200" max="-20" value="-80" class="w-full accent-slate-900">
+          </div>
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-slate-700 font-medium">Enable Layout Physics</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="toggle-physics" class="sr-only peer" checked>
+              <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <!-- Ontology Editing Tools Expansion -->
+      <div class="space-y-2">
+        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Schema Modifications</span>
+        
+        <!-- Add Class Card -->
+        <details class="group bg-white border border-slate-200 rounded-lg overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+          <summary class="flex items-center justify-between p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition-colors">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-plus-circle text-slate-700"></i> Add Concept Class</span>
+            <i class="fa-solid fa-chevron-down text-slate-400 transition-transform group-open:rotate-180"></i>
+          </summary>
+          <div class="p-3 border-t border-slate-100 bg-slate-50/50 space-y-2 text-xs">
+            <div>
+              <label class="block text-slate-600 font-medium mb-1">Class Label / Name</label>
+              <input type="text" id="new-class-label" placeholder="e.g. Tecnico" class="w-full p-2 bg-white border border-slate-200 rounded-md">
+            </div>
+            <div>
+              <label class="block text-slate-600 font-medium mb-1">URI Identifier (Optional)</label>
+              <input type="text" id="new-class-uri" placeholder="http://example.org/Tecnico" class="w-full p-2 bg-white border border-slate-200 rounded-md">
+            </div>
+            <button id="btn-create-class" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-md shadow-xs transition-colors">
+              Add Concept Class
+            </button>
+          </div>
+        </details>
+
+        <!-- Add Relationship Card -->
+        <details class="group bg-white border border-slate-200 rounded-lg overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+          <summary class="flex items-center justify-between p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition-colors">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-share-nodes text-slate-700"></i> Connect Concepts</span>
+            <i class="fa-solid fa-chevron-down text-slate-400 transition-transform group-open:rotate-180"></i>
+          </summary>
+          <div class="p-3 border-t border-slate-100 bg-slate-50/50 space-y-2 text-xs">
+            <div>
+              <label class="block text-slate-600 font-medium mb-1">Source Class (Domain)</label>
+              <select id="rel-source-select" class="w-full p-2 bg-white border border-slate-200 rounded-md text-slate-800"></select>
+            </div>
+            <div>
+              <label class="block text-slate-600 font-medium mb-1">Relationship Name</label>
+              <input type="text" id="rel-name" placeholder="e.g. subClassOf or pertenceAEquipe" class="w-full p-2 bg-white border border-slate-200 rounded-md">
+            </div>
+            <div>
+              <label class="block text-slate-600 font-medium mb-1">Target Class (Range)</label>
+              <select id="rel-target-select" class="w-full p-2 bg-white border border-slate-200 rounded-md text-slate-800"></select>
+            </div>
+            <button id="btn-create-rel" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-md shadow-xs transition-colors">
+              Create Schema Relation
+            </button>
+          </div>
+        </details>
+      </div>
+
+    </div>
+
+    <!-- Action Footer -->
+    <div class="p-4 border-t border-slate-200 bg-white space-y-2">
+      <button id="btn-export-ttl" class="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-xs rounded-lg flex items-center justify-center gap-2 transition-all">
+        <i class="fa-solid fa-download"></i> Export Turtle Schema (.ttl)
+      </button>
+      <button id="btn-reset" class="w-full py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 font-medium text-xs rounded-lg flex items-center justify-center gap-2 transition-all">
+        <i class="fa-solid fa-rotate"></i> Reset Schema Layout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Canvas for Visualization -->
+  <main class="flex-1 h-full relative bg-white paper-grid">
+    <!-- Error Notification Toast -->
+    <div id="error-toast" class="hidden absolute top-4 right-4 z-30 bg-rose-900 text-white p-3.5 rounded-xl shadow-xl border border-rose-700 max-w-sm flex items-start gap-3 transition-all">
+      <i class="fa-solid fa-circle-exclamation text-rose-300 text-base mt-0.5 shrink-0"></i>
+      <div class="flex-1 text-xs">
+        <h4 class="font-bold text-rose-100 mb-0.5">Failed to Load Ontology</h4>
+        <p id="error-toast-msg" class="text-rose-200 text-[11px] leading-snug"></p>
+      </div>
+      <button onclick="hideErrorNotification()" class="text-rose-300 hover:text-white p-1">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Status Loading Overlay -->
+    <div id="loader" class="absolute inset-0 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center z-20 gap-3">
+      <div class="w-8 h-8 border-3 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+      <p id="loader-text" class="text-xs font-semibold text-slate-700 tracking-wide">Parsing ontology concepts...</p>
+    </div>
+
+    <!-- Vis Network Graph Canvas Container -->
+    <div id="mynetwork"></div>
+
+    <!-- Scientific Legend Floating Panel -->
+    <div class="absolute bottom-6 right-6 bg-white/95 backdrop-blur-md p-3.5 rounded-xl border border-slate-300 shadow-md text-xs space-y-2 z-10 max-w-xs">
+      <div class="font-bold text-slate-900 text-[11px] border-b border-slate-100 pb-1 flex items-center justify-between">
+        <span>Scientific Figure Legend</span>
+        <span class="text-[9px] text-slate-400 font-mono uppercase">TBox Only</span>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <span class="w-4 h-4 rounded-md bg-slate-100 border-2 border-slate-900 inline-block shadow-2xs"></span>
+        <span class="text-slate-800 font-medium">Ontology Concept Class (<code class="text-[10px] font-mono bg-slate-100 px-1 py-0.5 rounded">owl:Class</code>)</span>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <div class="w-6 flex items-center justify-center"><span class="w-full h-0.5 bg-slate-800 relative"><span class="absolute right-0 top-1/2 -translate-y-1/2 border-l-4 border-l-slate-800 border-y-2 border-y-transparent"></span></span></div>
+        <span class="text-slate-800 font-medium">Schema Relation (<code class="text-[10px] font-mono bg-slate-100 px-1 py-0.5 rounded">rdfs:domain/range</code>)</span>
+      </div>
+      <div class="text-[10px] text-slate-500 pt-1 border-t border-slate-100">
+        <i class="fa-solid fa-circle-info mr-1"></i> Labels use white pill backgrounds to prevent text collision.
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentTtlUrl = "https://raw.githubusercontent.com/ciatec-org/ciatec-data-samples/main/pc_basketball_2024_v2/ciatec_basquete.ttl";
+
+    function showErrorNotification(msg) {
+      const toast = document.getElementById('error-toast');
+      const msgEl = document.getElementById('error-toast-msg');
+      if (toast && msgEl) {
+        msgEl.innerText = msg;
+        toast.classList.remove('hidden');
+      }
+    }
+
+    function hideErrorNotification() {
+      const toast = document.getElementById('error-toast');
+      if (toast) toast.classList.add('hidden');
+    }
+
+    function normalizeOntologyUrl(url) {
+      if (typeof url !== 'string') return '';
+      let cleanUrl = url.trim();
+
+      // Convert GitHub webpage URLs to jsDelivr CDN or raw GitHub URLs with CORS headers
+      const githubBlobRegex = /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)$/i;
+      const match = cleanUrl.match(githubBlobRegex);
+      if (match) {
+        return `https://cdn.jsdelivr.net/gh/${match[1]}/${match[2]}@${match[3]}/${match[4]}`;
+      }
+
+      if (cleanUrl.includes('github.com') && cleanUrl.includes('/raw/')) {
+        cleanUrl = cleanUrl.replace('github.com', 'raw.githubusercontent.com').replace('/raw/', '/');
+      }
+
+      return cleanUrl;
+    }
+
+    async function fetchOntologyText(url) {
+      const cleanUrl = normalizeOntologyUrl(url);
+      if (!cleanUrl) throw new Error("Invalid URL provided.");
+
+      const isHtml = (str) => {
+        const trimmed = str.trim().toLowerCase();
+        return trimmed.startsWith('<!doctype') || trimmed.startsWith('<html') || trimmed.startsWith('<head');
+      };
+
+      const fetchErrors = [];
+
+      // Attempt 1: Direct Fetch
+      try {
+        const response = await fetch(cleanUrl, { mode: 'cors' });
+        if (response.ok) {
+          const text = await response.text();
+          if (text && text.trim().length > 0) {
+            if (isHtml(text)) {
+              throw new Error("URL returned an HTML web page instead of raw RDF/Turtle content. Please provide a direct link to the raw .ttl file.");
+            }
+            return text;
+          }
+        }
+      } catch (e) {
+        if (e.message.includes("HTML web page")) throw e;
+        fetchErrors.push(`Direct: ${e.message}`);
+      }
+
+      // Attempt 2: CORS Proxy 1 (corsproxy.io)
+      try {
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(cleanUrl)}`;
+        const response = await fetch(proxyUrl);
+        if (response.ok) {
+          const text = await response.text();
+          if (text && text.trim().length > 0) {
+            if (isHtml(text)) {
+              throw new Error("Proxy returned an HTML web page instead of raw RDF content.");
+            }
+            return text;
+          }
+        }
+      } catch (e) {
+        if (e.message.includes("HTML web page")) throw e;
+        fetchErrors.push(`Proxy 1: ${e.message}`);
+      }
+
+      // Attempt 3: CORS Proxy 2 (allorigins)
+      try {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
+        const response = await fetch(proxyUrl);
+        if (response.ok) {
+          const text = await response.text();
+          if (text && text.trim().length > 0) {
+            if (isHtml(text)) {
+              throw new Error("Proxy returned an HTML web page instead of raw RDF content.");
+            }
+            return text;
+          }
+        }
+      } catch (e) {
+        if (e.message.includes("HTML web page")) throw e;
+        fetchErrors.push(`Proxy 2: ${e.message}`);
+      }
+
+      // Attempt 4: CORS Proxy 3 (codetabs)
+      try {
+        const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(cleanUrl)}`;
+        const response = await fetch(proxyUrl);
+        if (response.ok) {
+          const text = await response.text();
+          if (text && text.trim().length > 0 && !isHtml(text)) {
+            return text;
+          }
+        }
+      } catch (e) {
+        fetchErrors.push(`Proxy 3: ${e.message}`);
+      }
+
+      throw new Error(`Unable to fetch RDF ontology from URL. Please ensure it is a publicly accessible raw Turtle file (.ttl).\nErrors: ${fetchErrors.join('; ')}`);
+    }
+
+    // Definitions for standard famous vocabularies & upper-level ontologies
+    const STANDARD_VOCABULARIES = {
+      foaf: `
+        @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+        @prefix owl: <http://www.w3.org/2002/07/owl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+        foaf:Agent a owl:Class ; rdfs:label "foaf:Agent" .
+        foaf:Person rdfs:subClassOf foaf:Agent ; rdfs:label "foaf:Person" .
+        foaf:Group rdfs:subClassOf foaf:Agent ; rdfs:label "foaf:Group" .
+        foaf:Organization rdfs:subClassOf foaf:Agent ; rdfs:label "foaf:Organization" .
+
+        foaf:knows a owl:ObjectProperty ; rdfs:domain foaf:Person ; rdfs:range foaf:Person ; rdfs:label "foaf:knows" .
+        foaf:member a owl:ObjectProperty ; rdfs:domain foaf:Group ; rdfs:range foaf:Agent ; rdfs:label "foaf:member" .
+      `,
+      schema: `
+        @prefix schema: <https://schema.org/> .
+        @prefix owl: <http://www.w3.org/2002/07/owl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+        schema:Thing a owl:Class ; rdfs:label "schema:Thing" .
+        schema:Person rdfs:subClassOf schema:Thing ; rdfs:label "schema:Person" .
+        schema:Athlete rdfs:subClassOf schema:Person ; rdfs:label "schema:Athlete" .
+        schema:Organization rdfs:subClassOf schema:Thing ; rdfs:label "schema:Organization" .
+        schema:SportsTeam rdfs:subClassOf schema:Organization ; rdfs:label "schema:SportsTeam" .
+        schema:Event rdfs:subClassOf schema:Thing ; rdfs:label "schema:Event" .
+        schema:SportsEvent rdfs:subClassOf schema:Event ; rdfs:label "schema:SportsEvent" .
+        schema:Place rdfs:subClassOf schema:Thing ; rdfs:label "schema:Place" .
+
+        schema:memberOf a owl:ObjectProperty ; rdfs:domain schema:Athlete ; rdfs:range schema:SportsTeam ; rdfs:label "schema:memberOf" .
+        schema:competitor a owl:ObjectProperty ; rdfs:domain schema:SportsEvent ; rdfs:range schema:SportsTeam ; rdfs:label "schema:competitor" .
+        schema:location a owl:ObjectProperty ; rdfs:domain schema:SportsEvent ; rdfs:range schema:Place ; rdfs:label "schema:location" .
+      `,
+      skos: `
+        @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+        @prefix owl: <http://www.w3.org/2002/07/owl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+        skos:Concept a owl:Class ; rdfs:label "skos:Concept" .
+        skos:ConceptScheme a owl:Class ; rdfs:label "skos:ConceptScheme" .
+
+        skos:broader a owl:ObjectProperty ; rdfs:domain skos:Concept ; rdfs:range skos:Concept ; rdfs:label "skos:broader" .
+        skos:narrower a owl:ObjectProperty ; rdfs:domain skos:Concept ; rdfs:range skos:Concept ; rdfs:label "skos:narrower" .
+        skos:inScheme a owl:ObjectProperty ; rdfs:domain skos:Concept ; rdfs:range skos:ConceptScheme ; rdfs:label "skos:inScheme" .
+      `,
+      provo: `
+        @prefix prov: <http://www.w3.org/ns/prov#> .
+        @prefix owl: <http://www.w3.org/2002/07/owl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+        prov:Entity a owl:Class ; rdfs:label "prov:Entity" .
+        prov:Activity a owl:Class ; rdfs:label "prov:Activity" .
+        prov:Agent a owl:Class ; rdfs:label "prov:Agent" .
+
+        prov:wasAssociatedWith a owl:ObjectProperty ; rdfs:domain prov:Activity ; rdfs:range prov:Agent ; rdfs:label "prov:wasAssociatedWith" .
+        prov:wasGeneratedBy a owl:ObjectProperty ; rdfs:domain prov:Entity ; rdfs:range prov:Activity ; rdfs:label "prov:wasGeneratedBy" .
+        prov:actedOnBehalfOf a owl:ObjectProperty ; rdfs:domain prov:Agent ; rdfs:range prov:Agent ; rdfs:label "prov:actedOnBehalfOf" .
+      `,
+      dcterms: `
+        @prefix dcterms: <http://purl.org/dc/terms/> .
+        @prefix owl: <http://www.w3.org/2002/07/owl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+        dcterms:Agent a owl:Class ; rdfs:label "dcterms:Agent" .
+        dcterms:BibliographicResource a owl:Class ; rdfs:label "dcterms:BibliographicResource" .
+
+        dcterms:creator a owl:ObjectProperty ; rdfs:domain dcterms:BibliographicResource ; rdfs:range dcterms:Agent ; rdfs:label "dcterms:creator" .
+        dcterms:publisher a owl:ObjectProperty ; rdfs:domain dcterms:BibliographicResource ; rdfs:range dcterms:Agent ; rdfs:label "dcterms:publisher" .
+      `
+    };
+
+    // Alignment mapping between CIATEC local ontology and standard vocabularies
+    const ALIGNMENT_TTL = `
+      @prefix : <http://www.semanticweb.org/ciatec/ontologies/2024/basquete#> .
+      @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+      @prefix schema: <https://schema.org/> .
+      @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+      @prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+      :Atleta rdfs:subClassOf schema:Athlete ; rdfs:subClassOf foaf:Person .
+      :Equipe rdfs:subClassOf schema:SportsTeam ; rdfs:subClassOf foaf:Organization .
+      :Partida rdfs:subClassOf schema:SportsEvent .
+      :Quadra rdfs:subClassOf schema:Place .
+      :Tecnico rdfs:subClassOf schema:Person ; rdfs:subClassOf foaf:Person .
+    `;
+
+    // Embedded fallback dataset containing the complete concept schema in case of network restriction
+    const EMBEDDED_FALLBACK_TTL = `
+      @prefix : <http://www.semanticweb.org/ciatec/ontologies/2024/basquete#> .
+      @prefix owl: <http://www.w3.org/2002/07/owl#> .
+      @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+      @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+      :Atleta a owl:Class ; rdfs:label "Atleta" .
+      :Equipe a owl:Class ; rdfs:label "Equipe" .
+      :Partida a owl:Class ; rdfs:label "Partida" .
+      :Ponto a owl:Class ; rdfs:label "Ponto" .
+      :Falta a owl:Class ; rdfs:label "Falta" .
+      :Tecnico a owl:Class ; rdfs:label "Técnico" .
+      :Campeonato a owl:Class ; rdfs:label "Campeonato" .
+      :Quadra a owl:Class ; rdfs:label "Quadra" .
+
+      :AtletaAmador rdfs:subClassOf :Atleta ; rdfs:label "Atleta Amador" .
+      :AtletaProfissional rdfs:subClassOf :Atleta ; rdfs:label "Atleta Profissional" .
+
+      :pertenceAEquipe a owl:ObjectProperty ;
+          rdfs:domain :Atleta ;
+          rdfs:range :Equipe ;
+          rdfs:label "pertence a equipe" .
+
+      :disputaPartida a owl:ObjectProperty ;
+          rdfs:domain :Equipe ;
+          rdfs:range :Partida ;
+          rdfs:label "disputa partida" .
+
+      :pontouEm a owl:ObjectProperty ;
+          rdfs:domain :Atleta ;
+          rdfs:range :Partida ;
+          rdfs:label "pontou em" .
+
+      :cometeuFalta a owl:ObjectProperty ;
+          rdfs:domain :Atleta ;
+          rdfs:range :Falta ;
+          rdfs:label "cometeu falta" .
+
+      :comandaEquipe a owl:ObjectProperty ;
+          rdfs:domain :Tecnico ;
+          rdfs:range :Equipe ;
+          rdfs:label "comanda equipe" .
+    `;
+
+    let network = null;
+    let nodesDataset = new vis.DataSet();
+    let edgesDataset = new vis.DataSet();
+    let prefixes = {};
+
+    function shortenURI(uri) {
+      if (!uri) return "";
+      for (let key in prefixes) {
+        if (uri.startsWith(prefixes[key])) {
+          return `${key}:${uri.replace(prefixes[key], '')}`;
+        }
+      }
+      if (uri.includes('#')) return uri.split('#').pop();
+      if (uri.includes('/')) return uri.split('/').pop();
+      return uri;
+    }
+
+    async function loadOntology(customUrl) {
+      hideErrorNotification();
+      const urlInput = document.getElementById('ttl-url-input');
+      const validCustomUrl = typeof customUrl === 'string' ? customUrl.trim() : null;
+      const targetUrl = validCustomUrl || (urlInput && urlInput.value ? urlInput.value.trim() : currentTtlUrl);
+
+      if (!targetUrl) return;
+
+      showLoader("Fetching RDF ontology file...");
+      let ttlText = "";
+      let isFallback = false;
+
+      try {
+        ttlText = await fetchOntologyText(targetUrl);
+        currentTtlUrl = targetUrl;
+        if (urlInput) urlInput.value = targetUrl;
+      } catch (err) {
+        console.warn("Failed to load requested URL:", err);
+        hideLoader();
+        showErrorNotification(err.message || "Failed to fetch ontology from URL.");
+        return;
+      }
+
+      parseAndRenderSchema(ttlText, isFallback, targetUrl);
+    }
+
+    function parseAndRenderSchema(ttlText, isFallback = false, sourceUrl = '') {
+      showLoader("Extracting Concept Schema (TBox)...");
+
+      if (typeof N3 === "undefined") {
+        hideLoader();
+        showErrorNotification("N3.js RDF parsing library is not loaded.");
+        return;
+      }
+
+      const parser = new N3.Parser({ baseIRI: sourceUrl || undefined });
+      const quads = [];
+
+      parser.parse(ttlText, (error, quad, parsedPrefixes) => {
+        if (error) {
+          console.error("Parser Error:", error);
+          hideLoader();
+          showErrorNotification(`RDF Parsing Error: ${error.message}. Ensure the target file is valid Turtle syntax (.ttl).`);
+          return;
+        }
+
+        if (parsedPrefixes) Object.assign(prefixes, parsedPrefixes);
+
+        if (quad) {
+          quads.push(quad);
+        } else {
+          processTBoxQuads(quads);
+          hideLoader();
+        }
+      });
+    }
+
+    function processTBoxQuads(quads) {
+      nodesDataset.clear();
+      edgesDataset.clear();
+
+      const conceptNodesMap = new Map();
+      const schemaEdgesList = [];
+      const labelMap = new Map();
+
+      // Collect all rdfs:label entries
+      quads.forEach(quad => {
+        if (quad.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label") {
+          labelMap.set(quad.subject.value, quad.object.value);
+        }
+      });
+
+      // 1. Identify explicit owl:Class & rdfs:Class entities
+      quads.forEach(quad => {
+        const s = quad.subject.value;
+        const p = quad.predicate.value;
+        const o = quad.object.value;
+
+        if (p === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") {
+          if (o === "http://www.w3.org/2002/07/owl#Class" || o === "http://www.w3.org/2000/01/rdf-schema#Class") {
+            if (!conceptNodesMap.has(s)) {
+              conceptNodesMap.set(s, { id: s, label: labelMap.get(s) || shortenURI(s), uri: s });
+            }
+          }
+        }
+      });
+
+      // 2. Extract Schema Relationships (rdfs:subClassOf, owl:equivalentClass)
+      quads.forEach(quad => {
+        const s = quad.subject.value;
+        const p = quad.predicate.value;
+        const o = quad.object.value;
+
+        if (p === "http://www.w3.org/2000/01/rdf-schema#subClassOf" || p === "http://www.w3.org/2002/07/owl#equivalentClass") {
+          if (!conceptNodesMap.has(s)) conceptNodesMap.set(s, { id: s, label: labelMap.get(s) || shortenURI(s), uri: s });
+          if (!conceptNodesMap.has(o)) conceptNodesMap.set(o, { id: o, label: labelMap.get(o) || shortenURI(o), uri: o });
+
+          schemaEdgesList.push({
+            from: s,
+            to: o,
+            label: labelMap.get(p) || shortenURI(p)
+          });
+        }
+      });
+
+      // 3. Extract Object Properties linking Domain & Range classes
+      const domainMap = new Map();
+      const rangeMap = new Map();
+
+      quads.forEach(quad => {
+        const s = quad.subject.value;
+        const p = quad.predicate.value;
+        const o = quad.object.value;
+
+        if (p === "http://www.w3.org/2000/01/rdf-schema#domain") domainMap.set(s, o);
+        if (p === "http://www.w3.org/2000/01/rdf-schema#range") rangeMap.set(s, o);
+      });
+
+      domainMap.forEach((domainClass, propUri) => {
+        if (rangeMap.has(propUri)) {
+          const rangeClass = rangeMap.get(propUri);
+          
+          if (!conceptNodesMap.has(domainClass)) conceptNodesMap.set(domainClass, { id: domainClass, label: labelMap.get(domainClass) || shortenURI(domainClass), uri: domainClass });
+          if (!conceptNodesMap.has(rangeClass)) conceptNodesMap.set(rangeClass, { id: rangeClass, label: labelMap.get(rangeClass) || shortenURI(rangeClass), uri: rangeClass });
+
+          schemaEdgesList.push({
+            from: domainClass,
+            to: rangeClass,
+            label: labelMap.get(propUri) || shortenURI(propUri)
+          });
+        }
+      });
+
+      // 4. Fallback for implicit classes if no explicit owl:Class declarations exist
+      if (conceptNodesMap.size === 0) {
+        quads.forEach(quad => {
+          const s = quad.subject.value;
+          const o = quad.object.value;
+          if (quad.subject.termType === 'NamedNode' && !conceptNodesMap.has(s) && !s.startsWith("http://www.w3.org/")) {
+            conceptNodesMap.set(s, { id: s, label: labelMap.get(s) || shortenURI(s), uri: s });
+          }
+          if (quad.object.termType === 'NamedNode' && !conceptNodesMap.has(o) && !o.startsWith("http://www.w3.org/")) {
+            conceptNodesMap.set(o, { id: o, label: labelMap.get(o) || shortenURI(o), uri: o });
+          }
+        });
+      }
+
+      // Format Vis.js Nodes for Scientific Paper High Contrast
+      const formattedNodes = Array.from(conceptNodesMap.values()).map(n => ({
+        id: n.id,
+        label: n.label,
+        shape: 'box',
+        shapeProperties: { borderRadius: 6 },
+        color: {
+          background: '#f8fafc',
+          border: '#0f172a',
+          highlight: { background: '#e0f2fe', border: '#0284c7' },
+          hover: { background: '#f1f5f9', border: '#0f172a' }
+        },
+        borderWidth: 2,
+        font: { color: '#0f172a', size: 14, face: 'system-ui, -apple-system, sans-serif', bold: true },
+        margin: { top: 10, right: 14, bottom: 10, left: 14 }
+      }));
+
+      // Format Vis.js Edges with Text Box Background Pill to prevent Overlap
+      const formattedEdges = schemaEdgesList.map((e, idx) => ({
+        id: `edge_${idx}_${Math.random().toString(36).substr(2, 5)}`,
+        from: e.from,
+        to: e.to,
+        label: e.label,
+        arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+        color: { color: '#334155', highlight: '#0284c7' },
+        width: 1.5,
+        font: {
+          color: '#0f172a',
+          size: 11,
+          face: 'system-ui, -apple-system, sans-serif',
+          background: '#ffffff', // Background pill prevents edge overlap!
+          strokeWidth: 2,
+          strokeColor: '#ffffff',
+          align: 'horizontal'
+        },
+        smooth: { type: 'cubicBezier', roundness: 0.3 }
+      }));
+
+      nodesDataset.add(formattedNodes);
+      edgesDataset.add(formattedEdges);
+
+      updateStats();
+      populateDropdowns();
+      renderVisNetwork();
+    }
+
+    // Function to parse and merge additional vocabulary quads into the active graph
+    function enrichWithVocabulary(vocabKey) {
+      const ttl = STANDARD_VOCABULARIES[vocabKey];
+      if (!ttl) return;
+
+      showLoader(`Enriching schema with ${vocabKey.toUpperCase()}...`);
+
+      const parser = new N3.Parser();
+      const newQuads = [];
+
+      parser.parse(ttl, (error, quad, parsedPrefixes) => {
+        if (error) {
+          console.error("Vocabulary parsing error:", error);
+          hideLoader();
+          return;
+        }
+
+        if (parsedPrefixes) Object.assign(prefixes, parsedPrefixes);
+
+        if (quad) {
+          newQuads.push(quad);
+        } else {
+          mergeAdditionalQuads(newQuads);
+          hideLoader();
+        }
+      });
+    }
+
+    // Function to auto-align local concepts (e.g. CIATEC) with Schema.org & FOAF
+    window.alignCIATECVocabularies = function() {
+      showLoader("Aligning CIATEC Basketball schema with Schema.org & FOAF...");
+
+      // Ensure base vocabularies exist first
+      enrichWithVocabulary('schema');
+      enrichWithVocabulary('foaf');
+
+      const parser = new N3.Parser();
+      const alignmentQuads = [];
+
+      parser.parse(ALIGNMENT_TTL, (error, quad) => {
+        if (quad) {
+          alignmentQuads.push(quad);
+        } else {
+          mergeAdditionalQuads(alignmentQuads);
+          hideLoader();
+        }
+      });
+    };
+
+    function mergeAdditionalQuads(quads) {
+      quads.forEach(quad => {
+        const s = quad.subject.value;
+        const p = quad.predicate.value;
+        const o = quad.object.value;
+
+        // 1. Add missing class nodes
+        if (p === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && (o === "http://www.w3.org/2002/07/owl#Class" || o === "http://www.w3.org/2000/01/rdf-schema#Class")) {
+          if (!nodesDataset.get(s)) {
+            const shortLabel = shortenURI(s);
+            nodesDataset.add({
+              id: s,
+              label: shortLabel,
+              shape: 'box',
+              shapeProperties: { borderRadius: 6 },
+              color: {
+                background: s.includes('schema.org') ? '#fef3c7' : s.includes('xmlns.com/foaf') ? '#dbeafe' : '#f8fafc',
+                border: '#0f172a',
+                highlight: { background: '#e0f2fe', border: '#0284c7' }
+              },
+              borderWidth: 2,
+              font: { color: '#0f172a', size: 14, face: 'system-ui, -apple-system, sans-serif', bold: true },
+              margin: { top: 10, right: 14, bottom: 10, left: 14 }
+            });
+          }
+        }
+
+        // 2. Fetch labels if present
+        if (p === "http://www.w3.org/2000/01/rdf-schema#label") {
+          const existing = nodesDataset.get(s);
+          if (existing) {
+            nodesDataset.update({ id: s, label: o });
+          } else {
+            nodesDataset.add({
+              id: s,
+              label: o,
+              shape: 'box',
+              shapeProperties: { borderRadius: 6 },
+              color: { background: '#f8fafc', border: '#0f172a' },
+              borderWidth: 2,
+              font: { color: '#0f172a', size: 14, bold: true },
+              margin: { top: 10, right: 14, bottom: 10, left: 14 }
+            });
+          }
+        }
+
+        // 3. Add relationships
+        if (p === "http://www.w3.org/2000/01/rdf-schema#subClassOf" || p === "http://www.w3.org/2002/07/owl#equivalentClass") {
+          if (!nodesDataset.get(s)) nodesDataset.add({ id: s, label: shortenURI(s), shape: 'box', borderWidth: 2, color: { background: '#f8fafc', border: '#0f172a' }, font: { bold: true } });
+          if (!nodesDataset.get(o)) nodesDataset.add({ id: o, label: shortenURI(o), shape: 'box', borderWidth: 2, color: { background: '#f8fafc', border: '#0f172a' }, font: { bold: true } });
+
+          edgesDataset.add({
+            id: `edge_${Math.random().toString(36).substr(2, 5)}`,
+            from: s,
+            to: o,
+            label: shortenURI(p),
+            arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+            color: { color: '#0284c7', highlight: '#0369a1' },
+            width: 1.5,
+            font: { color: '#0f172a', size: 11, background: '#ffffff', strokeWidth: 2, strokeColor: '#ffffff' }
+          });
+        }
+      });
+
+      // Also process domain and range triples from the new quads
+      const domainMap = new Map();
+      const rangeMap = new Map();
+
+      quads.forEach(quad => {
+        if (quad.predicate.value === "http://www.w3.org/2000/01/rdf-schema#domain") domainMap.set(quad.subject.value, quad.object.value);
+        if (quad.predicate.value === "http://www.w3.org/2000/01/rdf-schema#range") rangeMap.set(quad.subject.value, quad.object.value);
+      });
+
+      domainMap.forEach((domainClass, propUri) => {
+        if (rangeMap.has(propUri)) {
+          const rangeClass = rangeMap.get(propUri);
+          if (!nodesDataset.get(domainClass)) nodesDataset.add({ id: domainClass, label: shortenURI(domainClass), shape: 'box', borderWidth: 2, color: { background: '#f8fafc', border: '#0f172a' }, font: { bold: true } });
+          if (!nodesDataset.get(rangeClass)) nodesDataset.add({ id: rangeClass, label: shortenURI(rangeClass), shape: 'box', borderWidth: 2, color: { background: '#f8fafc', border: '#0f172a' }, font: { bold: true } });
+
+          edgesDataset.add({
+            id: `edge_${Math.random().toString(36).substr(2, 5)}`,
+            from: domainClass,
+            to: rangeClass,
+            label: shortenURI(propUri),
+            arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+            color: { color: '#334155', highlight: '#0284c7' },
+            width: 1.5,
+            font: { color: '#0f172a', size: 11, background: '#ffffff', strokeWidth: 2, strokeColor: '#ffffff' }
+          });
+        }
+      });
+
+      updateStats();
+      populateDropdowns();
+      if (network) {
+        network.stabilize();
+      }
+    }
+
+    function renderVisNetwork() {
+      const container = document.getElementById('mynetwork');
+      const data = { nodes: nodesDataset, edges: edgesDataset };
+
+      const options = {
+        interaction: { hover: true, tooltipDelay: 100, keyboard: true },
+        physics: {
+          solver: 'forceAtlas2Based',
+          forceAtlas2Based: {
+            gravitationalConstant: -80,
+            centralGravity: 0.015,
+            springLength: 160,
+            springConstant: 0.08,
+            avoidOverlap: 1.0 // Maximum overlap prevention for scientific diagrams
+          },
+          stabilization: {
+            enabled: true,
+            iterations: 1000,
+            updateInterval: 25
+          }
+        }
+      };
+
+      if (network) network.destroy();
+      network = new vis.Network(container, data, options);
+
+      // Node Selection Handler for Inspector
+      network.on("selectNode", function (params) {
+        const nodeId = params.nodes[0];
+        const node = nodesDataset.get(nodeId);
+        if (node) showInspectorDetails(node);
+      });
+
+      network.on("deselectNode", function () {
+        resetInspector();
+      });
+    }
+
+    function showInspectorDetails(node) {
+      const connectedEdges = edgesDataset.get({
+        filter: e => e.from === node.id || e.to === node.id
+      });
+
+      const inspector = document.getElementById('inspector-content');
+      inspector.innerHTML = `
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block text-slate-500 font-semibold mb-0.5">Concept URI</label>
+            <input type="text" value="${node.id}" readonly class="w-full p-1.5 bg-white border border-slate-200 rounded text-slate-500 font-mono text-[10px]">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-0.5">Concept Label</label>
+            <input type="text" id="inspector-edit-label" value="${node.label}" class="w-full p-1.5 bg-white border border-slate-200 rounded text-slate-900 font-semibold">
+          </div>
+          <div class="text-[11px] text-slate-500">
+            <strong>Connected Relations:</strong> ${connectedEdges.length}
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button onclick="saveNodeLabel('${node.id}')" class="flex-1 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded shadow-2xs transition-colors">
+              <i class="fa-solid fa-check"></i> Save Label
+            </button>
+            <button onclick="removeNode('${node.id}')" class="py-1.5 px-3 bg-red-50 hover:bg-red-100 text-red-600 font-semibold rounded border border-red-200 transition-colors">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function resetInspector() {
+      document.getElementById('inspector-content').innerHTML = `
+        <p class="text-xs text-slate-400 italic">Select any concept node on the canvas to inspect or adjust its URI label.</p>
+      `;
+    }
+
+    window.saveNodeLabel = function(nodeId) {
+      const newLabel = document.getElementById('inspector-edit-label').value;
+      if (newLabel) {
+        nodesDataset.update({ id: nodeId, label: newLabel });
+        populateDropdowns();
+      }
+    };
+
+    window.removeNode = function(nodeId) {
+      nodesDataset.remove(nodeId);
+      const connectedEdges = edgesDataset.get({
+        filter: e => e.from === nodeId || e.to === nodeId
+      });
+      edgesDataset.remove(connectedEdges);
+      resetInspector();
+      updateStats();
+      populateDropdowns();
+    };
+
+    function updateStats() {
+      document.getElementById('stat-nodes').innerText = nodesDataset.length;
+      document.getElementById('stat-edges').innerText = edgesDataset.length;
+    }
+
+    function populateDropdowns() {
+      const srcSelect = document.getElementById('rel-source-select');
+      const tgtSelect = document.getElementById('rel-target-select');
+      
+      const optionsHtml = nodesDataset.get().map(n => 
+        `<option value="${n.id}">${n.label}</option>`
+      ).join('');
+
+      srcSelect.innerHTML = optionsHtml;
+      tgtSelect.innerHTML = optionsHtml;
+    }
+
+    function showLoader(msg) {
+      document.getElementById('loader-text').innerText = msg;
+      document.getElementById('loader').style.display = 'flex';
+    }
+
+    function hideLoader() {
+      document.getElementById('loader').style.display = 'none';
+    }
+
+    // Slider Controls for Physics
+    document.getElementById('slider-spring').addEventListener('input', (e) => {
+      const val = e.target.value;
+      document.getElementById('val-spring').innerText = val;
+      if (network) {
+        network.setOptions({
+          physics: { forceAtlas2Based: { springLength: parseInt(val) } }
+        });
+      }
+    });
+
+    document.getElementById('slider-repulsion').addEventListener('input', (e) => {
+      const val = e.target.value;
+      document.getElementById('val-repulsion').innerText = val;
+      if (network) {
+        network.setOptions({
+          physics: { forceAtlas2Based: { gravitationalConstant: parseInt(val) } }
+        });
+      }
+    });
+
+    document.getElementById('toggle-physics').addEventListener('change', (e) => {
+      if (network) {
+        network.setOptions({ physics: { enabled: e.target.checked } });
+      }
+    });
+
+    // Add New Concept Class Button
+    document.getElementById('btn-create-class').addEventListener('click', () => {
+      const label = document.getElementById('new-class-label').value.trim();
+      let uri = document.getElementById('new-class-uri').value.trim();
+
+      if (!label) return;
+
+      if (!uri) {
+        uri = `http://www.semanticweb.org/ciatec/ontologies/2024/basquete#${label.replace(/\s+/g, '')}`;
+      }
+
+      nodesDataset.add({
+        id: uri,
+        label: label,
+        shape: 'box',
+        shapeProperties: { borderRadius: 6 },
+        color: {
+          background: '#f8fafc',
+          border: '#0f172a',
+          highlight: { background: '#e0f2fe', border: '#0284c7' }
+        },
+        borderWidth: 2,
+        font: { color: '#0f172a', size: 14, bold: true },
+        margin: { top: 10, right: 14, bottom: 10, left: 14 }
+      });
+
+      document.getElementById('new-class-label').value = '';
+      document.getElementById('new-class-uri').value = '';
+      updateStats();
+      populateDropdowns();
+    });
+
+    // Add Relationship Button
+    document.getElementById('btn-create-rel').addEventListener('click', () => {
+      const source = document.getElementById('rel-source-select').value;
+      const target = document.getElementById('rel-target-select').value;
+      const relName = document.getElementById('rel-name').value.trim() || 'subClassOf';
+
+      if (!source || !target) return;
+
+      edgesDataset.add({
+        id: `edge_${Math.random().toString(36).substr(2, 5)}`,
+        from: source,
+        to: target,
+        label: relName,
+        arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+        color: { color: '#334155', highlight: '#0284c7' },
+        width: 1.5,
+        font: {
+          color: '#0f172a',
+          size: 11,
+          background: '#ffffff',
+          strokeWidth: 2,
+          strokeColor: '#ffffff'
+        }
+      });
+
+      document.getElementById('rel-name').value = '';
+      updateStats();
+    });
+
+    // Filter Search
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase();
+      nodesDataset.forEach(node => {
+        const visible = term ? node.label.toLowerCase().includes(term) : true;
+        nodesDataset.update({ id: node.id, hidden: !visible });
+      });
+    });
+
+    // Reset View
+    document.getElementById('btn-reset').addEventListener('click', () => loadOntology());
+
+    // Custom URL Loading Event Handlers
+    document.getElementById('btn-load-url').addEventListener('click', () => {
+      const url = document.getElementById('ttl-url-input').value.trim();
+      if (url) loadOntology(url);
+    });
+
+    document.getElementById('ttl-url-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const url = e.target.value.trim();
+        if (url) loadOntology(url);
+      }
+    });
+
+    // Preset Selection Event Handler
+    document.getElementById('preset-url-select').addEventListener('change', (e) => {
+      const selectedUrl = e.target.value;
+      if (selectedUrl) {
+        document.getElementById('ttl-url-input').value = selectedUrl;
+        loadOntology(selectedUrl);
+      }
+    });
+
+    // Export High-Resolution PNG for Scientific Papers
+    document.getElementById('btn-export-png').addEventListener('click', () => {
+      if (!network) return;
+
+      // Fit network view before capturing
+      network.fit({
+        animation: false,
+        nodes: nodesDataset.getIds()
+      });
+
+      setTimeout(() => {
+        const visCanvas = document.querySelector('#mynetwork canvas');
+        if (!visCanvas) return;
+
+        // Create high-res offscreen canvas
+        const exportCanvas = document.createElement('canvas');
+        const ctx = exportCanvas.getContext('2d');
+        const scaleFactor = 2; // 2x Scale for Crisp DPI Printing
+
+        exportCanvas.width = visCanvas.width * scaleFactor;
+        exportCanvas.height = visCanvas.height * scaleFactor;
+
+        // Fill pure white background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+        // Scale and draw main network canvas
+        ctx.scale(scaleFactor, scaleFactor);
+        ctx.drawImage(visCanvas, 0, 0);
+
+        // Add scientific figure watermark/caption header at bottom
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 14px system-ui, sans-serif";
+        ctx.fillText("Figure: CIATEC Basketball RDF Concept Schema (TBox)", 20, visCanvas.height - 20);
+
+        // Download PNG file
+        const imageURI = exportCanvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = imageURI;
+        a.download = "ciatec_basketball_tbox_figure.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, 300);
+    });
+
+    // Export Turtle TTL Functionality
+    document.getElementById('btn-export-ttl').addEventListener('click', () => {
+      let ttlOutput = "@prefix : <http://www.semanticweb.org/ciatec/ontologies/2024/basquete#> .\n";
+      ttlOutput += "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n";
+      ttlOutput += "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n\n";
+
+      nodesDataset.forEach(n => {
+        ttlOutput += `<${n.id}> a owl:Class ;\n    rdfs:label "${n.label}" .\n\n`;
+      });
+
+      edgesDataset.forEach(e => {
+        ttlOutput += `<${e.from}> :${e.label.replace(/\s+/g, '')} <${e.to}> .\n`;
+      });
+
+      const blob = new Blob([ttlOutput], { type: "text/turtle;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ciatec_basquete_schema.ttl";
+      a.click();
+    });
+
+    // Trigger parsing lifecycle on load safely
+    document.addEventListener('DOMContentLoaded', () => loadOntology());
+  </script>
+</body>
+</html>
