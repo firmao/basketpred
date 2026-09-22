@@ -1,0 +1,212 @@
+{
+  "@context": {
+    "ciatec": "http://www.ciatec.org/ontologies/basketball#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "sosa": "http://www.w3.org/ns/sosa/",
+    "ssn": "http://www.w3.org/ns/ssn/",
+    "schema": "http://schema.org/",
+    "geo": "http://www.opengis.net/ont/geosparql#",
+    "duo": "http://purl.obolibrary.org/obo/DUO_"
+  },
+  "@graph": [
+    {
+      "@id": "http://www.ciatec.org/ontologies/basketball",
+      "@type": "owl:Ontology",
+      "rdfs:label": { "@language": "en", "@value": "CIATec Adaptive Basketball Domain Ontology" },
+      "rdfs:comment": { "@language": "en", "@value": "An OWL ontology for wheelchair basketball performance, motor classifications, and assistive equipment, aligned with FOAF, SOSA, Schema.org, GeoSPARQL, and DUO." },
+      "owl:versionInfo": "2.0.0"
+    },
+
+    {
+      "@id": "ciatec:Athlete",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "Athlete" },
+      "rdfs:subClassOf": ["foaf:Person", "schema:Athlete"],
+      "rdfs:comment": { "@language": "en", "@value": "An individual participating in wheelchair/adaptive basketball activities." }
+    },
+    {
+      "@id": "ciatec:MotorClassification",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "Motor Classification" },
+      "rdfs:subClassOf": "duo:0000017",
+      "rdfs:comment": { "@language": "en", "@value": "Clinical assessment scale representing functional physical capacity." }
+    },
+    {
+      "@id": "ciatec:GMFCS_Level_I",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "GMFCS Level I" },
+      "rdfs:subClassOf": "ciatec:MotorClassification"
+    },
+    {
+      "@id": "ciatec:MACS_Level",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "MACS Level" },
+      "rdfs:subClassOf": "ciatec:MotorClassification"
+    },
+    {
+      "@id": "ciatec:PerformanceMetric",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "Performance Metric" },
+      "rdfs:subClassOf": "sosa:Observation",
+      "rdfs:comment": { "@language": "en", "@value": "Kinematic or temporal observational measurement during a shot event." }
+    },
+    {
+      "@id": "ciatec:AssistiveDevice",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "Assistive Device" },
+      "rdfs:subClassOf": ["sosa:Platform", "schema:IndividualProduct"],
+      "rdfs:comment": { "@language": "en", "@value": "Adaptive equipment or sports wheelchair configured for the athlete." }
+    },
+    {
+      "@id": "ciatec:ActiveWheelchair_ModelB",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "Active Wheelchair Model B" },
+      "rdfs:subClassOf": "ciatec:AssistiveDevice"
+    },
+    {
+      "@id": "ciatec:CourtZone",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "Court Zone" },
+      "rdfs:subClassOf": ["geo:Feature", "schema:Place"],
+      "rdfs:comment": { "@language": "en", "@value": "Discretized spatial court sector where shot actions originate." }
+    },
+    {
+      "@id": "ciatec:ThreePointZone",
+      "@type": "owl:Class",
+      "rdfs:subClassOf": "ciatec:CourtZone"
+    },
+    {
+      "@id": "ciatec:FreeThrowLine",
+      "@type": "owl:Class",
+      "rdfs:subClassOf": "ciatec:CourtZone"
+    },
+    {
+      "@id": "ciatec:PaintRightWing",
+      "@type": "owl:Class",
+      "rdfs:subClassOf": "ciatec:CourtZone"
+    },
+    {
+      "@id": "ciatec:MidRangeCenter",
+      "@type": "owl:Class",
+      "rdfs:subClassOf": "ciatec:CourtZone"
+    },
+    {
+      "@id": "ciatec:EvaluationResult",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "Evaluation Result" }
+    },
+    {
+      "@id": "ciatec:LinkPrediction",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "Link Prediction" }
+    },
+
+    {
+      "@id": "ciatec:belongsToClass",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": "ciatec:Athlete",
+      "rdfs:range": "ciatec:MotorClassification"
+    },
+    {
+      "@id": "ciatec:recommendedAssistiveDevice",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": "ciatec:Athlete",
+      "rdfs:range": "ciatec:AssistiveDevice",
+      "rdfs:subPropertyOf": "sosa:hosts"
+    },
+    {
+      "@id": "ciatec:predictedHighAccuracy",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": "ciatec:Athlete",
+      "rdfs:range": "ciatec:CourtZone"
+    },
+    {
+      "@id": "ciatec:achievedAccuracy",
+      "@type": "owl:DatatypeProperty",
+      "rdfs:domain": "ciatec:Athlete",
+      "rdfs:range": "xsd:float"
+    },
+    {
+      "@id": "ciatec:hasReleaseLatency",
+      "@type": "owl:DatatypeProperty",
+      "rdfs:domain": "ciatec:Athlete",
+      "rdfs:range": "xsd:float"
+    },
+    {
+      "@id": "ciatec:hasPositionStability",
+      "@type": "owl:DatatypeProperty",
+      "rdfs:domain": "ciatec:Athlete",
+      "rdfs:range": "xsd:float"
+    },
+    {
+      "@id": "ciatec:confidenceScore",
+      "@type": "owl:DatatypeProperty",
+      "rdfs:domain": "ciatec:LinkPrediction",
+      "rdfs:range": "xsd:float"
+    },
+
+    {
+      "@id": "ciatec:User_5",
+      "@type": ["ciatec:Athlete", "foaf:Person"],
+      "ciatec:belongsToClass": { "@id": "ciatec:GMFCS_Level_I" },
+      "ciatec:achievedAccuracy": { "@value": 0.785, "@type": "xsd:float" },
+      "ciatec:hasReleaseLatency": { "@value": 2.10, "@type": "xsd:float" },
+      "ciatec:hasPositionStability": { "@value": 0.880, "@type": "xsd:float" },
+      "ciatec:predictedHighAccuracy": { "@id": "ciatec:ThreePointZone" }
+    },
+    {
+      "@id": "ciatec:User_12",
+      "@type": ["ciatec:Athlete", "foaf:Person"],
+      "ciatec:belongsToClass": { "@id": "ciatec:GMFCS_Level_I" },
+      "ciatec:predictedHighAccuracy": { "@id": "ciatec:FreeThrowLine" }
+    },
+    {
+      "@id": "ciatec:Experiment_2026_Evaluation",
+      "@type": "ciatec:EvaluationResult",
+      "ciatec:evaluatedMatchesCount": { "@value": 790, "@type": "xsd:integer" },
+      "ciatec:evaluatedShotsCount": { "@value": 11703, "@type": "xsd:integer" },
+      "ciatec:ungroundedHallucinationRate": { "@value": 0.423, "@type": "xsd:float" },
+      "ciatec:groundedHallucinationRate": { "@value": 0.012, "@type": "xsd:float" },
+      "ciatec:ungroundedAccuracy": { "@value": 0.615, "@type": "xsd:float" },
+      "ciatec:groundedAccuracy": { "@value": 0.887, "@type": "xsd:float" },
+      "ciatec:neuroSymbolicRocAuc": { "@value": 0.930, "@type": "xsd:float" }
+    },
+
+    {
+      "@id": "_:prediction_1",
+      "@type": "ciatec:LinkPrediction",
+      "ciatec:hasSubject": { "@id": "ciatec:User_5" },
+      "ciatec:hasPredicate": { "@id": "ciatec:predictedHighAccuracy" },
+      "ciatec:hasObject": { "@id": "ciatec:ThreePointZone" },
+      "ciatec:confidenceScore": { "@value": 0.942, "@type": "xsd:float" }
+    },
+    {
+      "@id": "_:prediction_2",
+      "@type": "ciatec:LinkPrediction",
+      "ciatec:hasSubject": { "@id": "ciatec:User_5" },
+      "ciatec:hasPredicate": { "@id": "ciatec:recommendedAssistiveDevice" },
+      "ciatec:hasObject": { "@id": "ciatec:ActiveWheelchair_ModelB" },
+      "ciatec:confidenceScore": { "@value": 0.887, "@type": "xsd:float" }
+    },
+    {
+      "@id": "_:prediction_3",
+      "@type": "ciatec:LinkPrediction",
+      "ciatec:hasSubject": { "@id": "ciatec:User_12" },
+      "ciatec:hasPredicate": { "@id": "ciatec:predictedHighAccuracy" },
+      "ciatec:hasObject": { "@id": "ciatec:FreeThrowLine" },
+      "ciatec:confidenceScore": { "@value": 0.915, "@type": "xsd:float" }
+    },
+    {
+      "@id": "_:prediction_4",
+      "@type": "ciatec:LinkPrediction",
+      "ciatec:hasSubject": { "@id": "ciatec:User_12" },
+      "ciatec:hasPredicate": { "@id": "ciatec:belongsToClass" },
+      "ciatec:hasObject": { "@id": "ciatec:GMFCS_Level_I" },
+      "ciatec:confidenceScore": { "@value": 0.960, "@type": "xsd:float" }
+    }
+  ]
+}
