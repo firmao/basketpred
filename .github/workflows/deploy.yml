@@ -1,0 +1,13 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    uses: ciatec-org/ciatec-devops/.github/workflows/deploy-ai-project.yml@main
+    with:
+      project_name: ciatec-ia-basketball
+      port: 8002
+    secrets: inherit
